@@ -3,111 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ردیاب پریود (تیمچه)</title>
+    <title>ردیاب پریود هوشمند</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
-        body { font-family: 'Vazirmatn', sans-serif; background-color: #fff5f7; }
-        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
+        body { font-family: 'Vazirmatn', sans-serif; background: linear-gradient(135deg, #fff5f7 0%, #fce4ec 100%); min-height: 100vh; }
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .day-cell { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-weight: 600; transition: 0.2s; }
+        .period-day { background-color: #f472b6; color: white; box-shadow: 0 4px 10px rgba(244, 114, 182, 0.4); }
+        .ovulation-day { background-color: #a78bfa; color: white; border-radius: 50%; }
+        .today { border: 2px solid #ec4899; }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <div class="max-w-md mx-auto space-y-6">
-        <header class="text-center">
-            <h1 class="text-3xl font-bold text-pink-600">ردیاب چرخه من</h1>
-            <p id="current-date" class="text-gray-500 mt-2"></p>
+<body class="p-4">
+    <div class="max-w-md mx-auto space-y-4">
+        <header class="text-center py-4">
+            <h1 class="text-3xl font-black text-pink-600">پریود من</h1>
+            <p id="current-jalali-date" class="text-gray-500 font-bold"></p>
         </header>
 
-        <div class="grid grid-cols-2 gap-4">
-            <div class="glass p-4 rounded-2xl border-t-4 border-pink-400 shadow-sm text-center">
-                <span class="text-sm text-gray-500">پریود بعدی</span>
-                <div id="next-period" class="text-lg font-bold text-pink-700">-</div>
+        <div class="grid grid-cols-2 gap-3">
+            <div class="glass p-4 rounded-2xl text-center">
+                <p class="text-xs text-gray-500">پریود بعدی</p>
+                <div id="next-date-text" class="text-lg font-bold text-pink-700">--</div>
             </div>
-            <div class="glass p-4 rounded-2xl border-t-4 border-purple-400 shadow-sm text-center">
-                <span class="text-sm text-gray-500">روز تخمک‌گذاری</span>
-                <div id="ovulation-day" class="text-lg font-bold text-purple-700">-</div>
+            <div class="glass p-4 rounded-2xl text-center">
+                <p class="text-xs text-gray-500">احتمال تخمک‌گذاری</p>
+                <div id="ovulation-date-text" class="text-lg font-bold text-purple-700">--</div>
             </div>
         </div>
 
-        <div class="glass p-6 rounded-3xl shadow-lg space-y-4">
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2">شروع آخرین پریود (میلادی):</label>
-                <input type="date" id="last-period-input" class="w-full p-3 rounded-xl border border-pink-100 focus:ring-2 focus:ring-pink-300 outline-none">
+        <div class="glass p-5 rounded-3xl shadow-xl space-y-4">
+            <div class="flex flex-col">
+                <label class="text-sm font-bold mb-1 text-gray-600">تاریخ شروع آخرین دوره (میلادی):</label>
+                <input type="date" id="start-date" class="p-3 rounded-xl border-2 border-pink-100 outline-none focus:border-pink-400">
             </div>
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2">طول دوره (معمولاً ۲۸):</label>
-                <input type="number" id="cycle-length" value="28" class="w-full p-3 rounded-xl border border-pink-100 outline-none">
+            <div class="flex flex-col">
+                <label class="text-sm font-bold mb-1 text-gray-600">طول میانگین دوره (روز):</label>
+                <input type="number" id="cycle-days" value="28" class="p-3 rounded-xl border-2 border-pink-100 outline-none">
             </div>
-            <button onclick="calculateCycle()" class="w-full py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl transition-all shadow-md">محاسبه و ذخیره</button>
+            <button onclick="updateTracker()" class="w-full py-4 bg-pink-500 text-white font-bold rounded-2xl shadow-lg hover:bg-pink-600 active:scale-95 transition-all">بروزرسانی تقویم</button>
+            <button onclick="syncToCalendar()" class="w-full py-2 border-2 border-pink-500 text-pink-600 font-bold rounded-2xl hover:bg-pink-50 transition-all text-sm">همگام‌سازی با تقویم گوشی</button>
         </div>
 
-        <div class="glass p-6 rounded-3xl shadow-lg">
-            <h2 id="month-name" class="text-xl font-bold text-gray-800 mb-4 text-center"></h2>
-            <div class="calendar-grid text-center text-xs font-bold text-gray-400 mb-2">
+        <div class="glass p-5 rounded-3xl shadow-xl">
+            <div id="month-label" class="text-xl font-bold text-gray-800 mb-4 text-center"></div>
+            <div class="calendar-grid text-gray-400 text-xs font-bold mb-2 text-center">
                 <div>ش</div><div>ی</div><div>د</div><div>س</div><div>چ</div><div>پ</div><div>ج</div>
             </div>
-            <div id="calendar-days" class="calendar-grid"></div>
+            <div id="calendar-body" class="calendar-grid text-sm"></div>
         </div>
     </div>
 
     <script>
-        const formatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { month: 'long', year: 'numeric', day: 'numeric' });
-        const dayFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { day: 'numeric' });
+        // Use Intl API for Persian Calendar
+        const jalaliDate = (date) => new Intl.DateTimeFormat('fa-IR-u-ca-persian', {day:'numeric', month:'long', year:'numeric'}).format(date);
+        const jalaliDay = (date) => parseInt(new Intl.DateTimeFormat('fa-IR-u-ca-persian', {day:'numeric'}).format(date));
+        
+        function updateTracker() {
+            const startDateVal = document.getElementById('start-date').value;
+            const cycleDays = parseInt(document.getElementById('cycle-days').value);
+            if(!startDateVal) return;
 
-        function init() {
-            document.getElementById('current-date').innerText = formatter.format(new Date());
-            const savedData = JSON.parse(localStorage.getItem('cycleData') || '{}');
-            if (savedData.lastDate) {
-                document.getElementById('last-period-input').value = savedData.lastDate;
-                document.getElementById('cycle-length').value = savedData.cycleLength;
-                calculateCycle();
-            }
+            const lastDate = new Date(startDateVal);
+            const nextDate = new Date(lastDate);
+            nextDate.setDate(lastDate.getDate() + cycleDays);
+            
+            const ovulationDate = new Date(nextDate);
+            ovulationDate.setDate(nextDate.getDate() - 14);
+
+            document.getElementById('next-date-text').innerText = jalaliDate(nextDate);
+            document.getElementById('ovulation-date-text').innerText = jalaliDate(ovulationDate);
+
+            localStorage.setItem('cycleData', JSON.stringify({start: startDateVal, length: cycleDays}));
+            renderJalaliCalendar(lastDate, nextDate, ovulationDate);
         }
 
-        function calculateCycle() {
-            const lastDateVal = document.getElementById('last-period-input').value;
-            const cycleLen = parseInt(document.getElementById('cycle-length').value);
-            if (!lastDateVal) return;
-
-            const lastDate = new Date(lastDateVal);
-            localStorage.setItem('cycleData', JSON.stringify({ lastDate: lastDateVal, cycleLength: cycleLen }));
-
-            // Next Period
-            const nextPeriod = new Date(lastDate);
-            nextPeriod.setDate(lastDate.getDate() + cycleLen);
-            document.getElementById('next-period').innerText = formatter.format(nextPeriod);
-
-            // Ovulation (standard rhythm method)
-            const ovulation = new Date(nextPeriod);
-            ovulation.setDate(nextPeriod.getDate() - 14);
-            document.getElementById('ovulation-day').innerText = formatter.format(ovulation);
-
-            renderCalendar(lastDate, nextPeriod, ovulation);
-        }
-
-        function renderCalendar(last, next, ovul) {
-            const container = document.getElementById('calendar-days');
-            const monthHeader = document.getElementById('month-name');
-            container.innerHTML = '';
-
+        function renderJalaliCalendar(last, next, ovul) {
+            const body = document.getElementById('calendar-body');
+            const label = document.getElementById('month-label');
+            body.innerHTML = '';
+            
             const now = new Date();
-            monthHeader.innerText = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { month: 'long' }).format(now);
-
-            // Simple logic for current Jalali month grid (simplified for mobile view)
-            for (let i = 1; i <= 31; i++) {
-                const dayDiv = document.createElement('div');
-                dayDiv.className = "h-10 flex flex-col items-center justify-center rounded-lg text-sm";
-                dayDiv.innerText = i.toLocaleString('fa-IR');
+            label.innerText = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {month:'long', year:'numeric'}).format(now);
+            
+            // Logic to find the start of the Jalali month
+            // We'll generate the last 7 days and next 25 days for a rolling view
+            for(let i = -7; i < 28; i++) {
+                const day = new Date();
+                day.setDate(now.getDate() + i);
                 
-                // Add dots for period/ovulation logic (placeholder logic)
-                if (i % 7 === 0) dayDiv.classList.add('bg-pink-100', 'text-pink-600');
-                container.appendChild(dayDiv);
+                const cell = document.createElement('div');
+                cell.className = 'day-cell';
+                cell.innerText = jalaliDay(day).toLocaleString('fa-IR');
+
+                if(day.toDateString() === now.toDateString()) cell.classList.add('today');
+                if(day.toDateString() === last.toDateString()) cell.classList.add('period-day');
+                if(day.toDateString() === next.toDateString()) cell.classList.add('period-day');
+                if(day.toDateString() === ovul.toDateString()) cell.classList.add('ovulation-day');
+
+                body.appendChild(cell);
             }
         }
 
-        window.onload = init;
+        function syncToCalendar() {
+            const cycle = JSON.parse(localStorage.getItem('cycleData'));
+            if(!cycle) return alert("ابتدا اطلاعات را وارد کنید");
+            
+            const nextDate = new Date(cycle.start);
+            nextDate.setDate(nextDate.getDate() + parseInt(cycle.length));
+            
+            // Create a simple .ics file content
+            const icsData = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${nextDate.toISOString().replace(/-|:|\.\d+/g, "")}\nSUMMARY:شروع پریود\nDESCRIPTION:یادآوری خودکار ردیاب\nEND:VEVENT\nEND:VCALENDAR`;
+            
+            const blob = new Blob([icsData], { type: 'text/calendar' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = 'period-sync.ics';
+            anchor.click();
+        }
+
+        window.onload = () => {
+            document.getElementById('current-jalali-date').innerText = jalaliDate(new Date());
+            const saved = JSON.parse(localStorage.getItem('cycleData'));
+            if(saved) {
+                document.getElementById('start-date').value = saved.start;
+                document.getElementById('cycle-days').value = saved.length;
+                updateTracker();
+            }
+        };
     </script>
 </body>
 </html>

@@ -7,76 +7,86 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
-        body { font-family: 'Vazirmatn', sans-serif; background: linear-gradient(135deg, #fff5f7 0%, #fce4ec 100%); min-height: 100vh; }
-        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-        .day-cell { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-weight: 600; transition: 0.2s; }
-        .period-day { background-color: #f472b6; color: white; box-shadow: 0 4px 10px rgba(244, 114, 182, 0.4); }
-        .ovulation-day { background-color: #a78bfa; color: white; border-radius: 50%; }
-        .today { border: 2px solid #ec4899; }
+        body { font-family: 'Vazirmatn', sans-serif; background: #fff5f7; min-height: 100vh; }
+        .glass { background: white; border-radius: 24px; border: 1px solid #fee2e2; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .day-cell { aspect-ratio: 1/1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; font-size: 0.85rem; }
+        .period-day { background-color: #f472b6 !important; color: white !important; font-weight: bold; }
+        .ovulation-day { background-color: #c084fc !important; color: white !important; border-radius: 50%; }
+        .today { border: 2px solid #f472b6; }
     </style>
 </head>
 <body class="p-4">
     <div class="max-w-md mx-auto space-y-4">
-        <header class="text-center py-4">
-            <h1 class="text-3xl font-black text-pink-600">پریود من</h1>
-            <p id="current-jalali-date" class="text-gray-500 font-bold"></p>
+        <header class="text-center py-2">
+            <h1 class="text-2xl font-black text-pink-600">ردیاب چرخه</h1>
+            <p id="today-jalali" class="text-sm text-gray-500 font-bold"></p>
         </header>
 
         <div class="grid grid-cols-2 gap-3">
-            <div class="glass p-4 rounded-2xl text-center">
-                <p class="text-xs text-gray-500">پریود بعدی</p>
-                <div id="next-date-text" class="text-lg font-bold text-pink-700">--</div>
+            <div class="glass p-3 text-center shadow-sm">
+                <p class="text-[10px] text-gray-400">پریود بعدی</p>
+                <div id="next-date-text" class="text-sm font-bold text-pink-700">--</div>
             </div>
-            <div class="glass p-4 rounded-2xl text-center">
-                <p class="text-xs text-gray-500">احتمال تخمک‌گذاری</p>
-                <div id="ovulation-date-text" class="text-lg font-bold text-purple-700">--</div>
+            <div class="glass p-3 text-center shadow-sm">
+                <p class="text-[10px] text-gray-400">تخمک‌گذاری</p>
+                <div id="ovulation-date-text" class="text-sm font-bold text-purple-700">--</div>
             </div>
         </div>
 
-        <div class="glass p-5 rounded-3xl shadow-xl space-y-4">
-            <div class="flex flex-col">
-                <label class="text-sm font-bold mb-1 text-gray-600">تاریخ شروع آخرین دوره (میلادی):</label>
-                <input type="date" id="start-date" class="p-3 rounded-xl border-2 border-pink-100 outline-none focus:border-pink-400">
+        <div class="glass p-5 shadow-lg space-y-4">
+            <div>
+                <label class="text-xs font-bold text-gray-500">شروع آخرین دوره:</label>
+                <div id="jalali-preview" class="text-pink-600 font-bold text-sm mb-1">---</div>
+                <input type="date" id="start-date" onchange="showJalaliPreview(this.value)" class="w-full p-3 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-300">
             </div>
-            <div class="flex flex-col">
-                <label class="text-sm font-bold mb-1 text-gray-600">طول میانگین دوره (روز):</label>
-                <input type="number" id="cycle-days" value="28" class="p-3 rounded-xl border-2 border-pink-100 outline-none">
+            <div>
+                <label class="text-xs font-bold text-gray-500">طول دوره (روز):</label>
+                <input type="number" id="cycle-days" value="28" class="w-full p-3 rounded-xl border-2 border-pink-50 outline-none">
             </div>
-            <button onclick="updateTracker()" class="w-full py-4 bg-pink-500 text-white font-bold rounded-2xl shadow-lg hover:bg-pink-600 active:scale-95 transition-all">بروزرسانی تقویم</button>
-            <button onclick="syncToCalendar()" class="w-full py-2 border-2 border-pink-500 text-pink-600 font-bold rounded-2xl hover:bg-pink-50 transition-all text-sm">همگام‌سازی با تقویم گوشی</button>
+            <button onclick="updateTracker()" class="w-full py-4 bg-pink-500 text-white font-bold rounded-2xl shadow-md">بروزرسانی</button>
+            <button onclick="syncToCalendar()" class="w-full py-2 text-pink-400 text-xs font-bold">همگام‌سازی با تقویم گوشی</button>
         </div>
 
-        <div class="glass p-5 rounded-3xl shadow-xl">
-            <div id="month-label" class="text-xl font-bold text-gray-800 mb-4 text-center"></div>
-            <div class="calendar-grid text-gray-400 text-xs font-bold mb-2 text-center">
+        <div class="glass p-4 shadow-lg">
+            <div id="month-label" class="text-center font-bold text-gray-700 mb-3"></div>
+            <div class="calendar-grid text-[10px] text-gray-400 font-bold mb-2 text-center">
                 <div>ش</div><div>ی</div><div>د</div><div>س</div><div>چ</div><div>پ</div><div>ج</div>
             </div>
-            <div id="calendar-body" class="calendar-grid text-sm"></div>
+            <div id="calendar-body" class="calendar-grid"></div>
         </div>
     </div>
 
     <script>
-        // Use Intl API for Persian Calendar
-        const jalaliDate = (date) => new Intl.DateTimeFormat('fa-IR-u-ca-persian', {day:'numeric', month:'long', year:'numeric'}).format(date);
-        const jalaliDay = (date) => parseInt(new Intl.DateTimeFormat('fa-IR-u-ca-persian', {day:'numeric'}).format(date));
+        const toJalali = (date) => new Intl.DateTimeFormat('fa-IR-u-ca-persian', {day:'numeric', month:'long', year:'numeric'}).format(date);
         
-        function updateTracker() {
-            const startDateVal = document.getElementById('start-date').value;
-            const cycleDays = parseInt(document.getElementById('cycle-days').value);
-            if(!startDateVal) return;
+        // Safety function to get Day Number without "NaN"
+        const getJalaliDayNum = (date) => {
+            const parts = new Intl.DateTimeFormat('en-u-ca-persian', {day:'numeric'}).formatToParts(date);
+            return parseInt(parts.find(p => p.type === 'day').value);
+        };
 
-            const lastDate = new Date(startDateVal);
+        function showJalaliPreview(val) {
+            if(!val) return;
+            document.getElementById('jalali-preview').innerText = "معادل: " + toJalali(new Date(val));
+        }
+
+        function updateTracker() {
+            const startVal = document.getElementById('start-date').value;
+            const cycleDays = parseInt(document.getElementById('cycle-days').value);
+            if(!startVal) return;
+
+            const lastDate = new Date(startVal);
             const nextDate = new Date(lastDate);
             nextDate.setDate(lastDate.getDate() + cycleDays);
             
             const ovulationDate = new Date(nextDate);
             ovulationDate.setDate(nextDate.getDate() - 14);
 
-            document.getElementById('next-date-text').innerText = jalaliDate(nextDate);
-            document.getElementById('ovulation-date-text').innerText = jalaliDate(ovulationDate);
+            document.getElementById('next-date-text').innerText = toJalali(nextDate);
+            document.getElementById('ovulation-date-text').innerText = toJalali(ovulationDate);
 
-            localStorage.setItem('cycleData', JSON.stringify({start: startDateVal, length: cycleDays}));
+            localStorage.setItem('cycleData', JSON.stringify({start: startVal, length: cycleDays}));
             renderJalaliCalendar(lastDate, nextDate, ovulationDate);
         }
 
@@ -88,15 +98,16 @@
             const now = new Date();
             label.innerText = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {month:'long', year:'numeric'}).format(now);
             
-            // Logic to find the start of the Jalali month
-            // We'll generate the last 7 days and next 25 days for a rolling view
+            // Generate 35 days starting from a week ago to cover current view
             for(let i = -7; i < 28; i++) {
                 const day = new Date();
                 day.setDate(now.getDate() + i);
                 
                 const cell = document.createElement('div');
                 cell.className = 'day-cell';
-                cell.innerText = jalaliDay(day).toLocaleString('fa-IR');
+                
+                const dayNum = getJalaliDayNum(day);
+                cell.innerText = dayNum.toLocaleString('fa-IR');
 
                 if(day.toDateString() === now.toDateString()) cell.classList.add('today');
                 if(day.toDateString() === last.toDateString()) cell.classList.add('period-day');
@@ -109,28 +120,20 @@
 
         function syncToCalendar() {
             const cycle = JSON.parse(localStorage.getItem('cycleData'));
-            if(!cycle) return alert("ابتدا اطلاعات را وارد کنید");
-            
+            if(!cycle) return;
             const nextDate = new Date(cycle.start);
             nextDate.setDate(nextDate.getDate() + parseInt(cycle.length));
-            
-            // Create a simple .ics file content
-            const icsData = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${nextDate.toISOString().replace(/-|:|\.\d+/g, "")}\nSUMMARY:شروع پریود\nDESCRIPTION:یادآوری خودکار ردیاب\nEND:VEVENT\nEND:VCALENDAR`;
-            
+            const icsData = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${nextDate.toISOString().replace(/-|:|\.\d+/g, "")}\nSUMMARY:شروع پریود\nEND:VEVENT\nEND:VCALENDAR`;
             const blob = new Blob([icsData], { type: 'text/calendar' });
-            const url = URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = 'period-sync.ics';
-            anchor.click();
+            window.location.href = URL.createObjectURL(blob);
         }
 
         window.onload = () => {
-            document.getElementById('current-jalali-date').innerText = jalaliDate(new Date());
+            document.getElementById('today-jalali').innerText = toJalali(new Date());
             const saved = JSON.parse(localStorage.getItem('cycleData'));
             if(saved) {
                 document.getElementById('start-date').value = saved.start;
-                document.getElementById('cycle-days').value = saved.length;
+                showJalaliPreview(saved.start);
                 updateTracker();
             }
         };

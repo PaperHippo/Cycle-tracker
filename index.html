@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ردیاب پریود (تیمچه)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #fff5f7; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-md mx-auto space-y-6">
+        <header class="text-center">
+            <h1 class="text-3xl font-bold text-pink-600">ردیاب چرخه من</h1>
+            <p id="current-date" class="text-gray-500 mt-2"></p>
+        </header>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="glass p-4 rounded-2xl border-t-4 border-pink-400 shadow-sm text-center">
+                <span class="text-sm text-gray-500">پریود بعدی</span>
+                <div id="next-period" class="text-lg font-bold text-pink-700">-</div>
+            </div>
+            <div class="glass p-4 rounded-2xl border-t-4 border-purple-400 shadow-sm text-center">
+                <span class="text-sm text-gray-500">روز تخمک‌گذاری</span>
+                <div id="ovulation-day" class="text-lg font-bold text-purple-700">-</div>
+            </div>
+        </div>
+
+        <div class="glass p-6 rounded-3xl shadow-lg space-y-4">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">شروع آخرین پریود (میلادی):</label>
+                <input type="date" id="last-period-input" class="w-full p-3 rounded-xl border border-pink-100 focus:ring-2 focus:ring-pink-300 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">طول دوره (معمولاً ۲۸):</label>
+                <input type="number" id="cycle-length" value="28" class="w-full p-3 rounded-xl border border-pink-100 outline-none">
+            </div>
+            <button onclick="calculateCycle()" class="w-full py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl transition-all shadow-md">محاسبه و ذخیره</button>
+        </div>
+
+        <div class="glass p-6 rounded-3xl shadow-lg">
+            <h2 id="month-name" class="text-xl font-bold text-gray-800 mb-4 text-center"></h2>
+            <div class="calendar-grid text-center text-xs font-bold text-gray-400 mb-2">
+                <div>ش</div><div>ی</div><div>د</div><div>س</div><div>چ</div><div>پ</div><div>ج</div>
+            </div>
+            <div id="calendar-days" class="calendar-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        const formatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { month: 'long', year: 'numeric', day: 'numeric' });
+        const dayFormatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { day: 'numeric' });
+
+        function init() {
+            document.getElementById('current-date').innerText = formatter.format(new Date());
+            const savedData = JSON.parse(localStorage.getItem('cycleData') || '{}');
+            if (savedData.lastDate) {
+                document.getElementById('last-period-input').value = savedData.lastDate;
+                document.getElementById('cycle-length').value = savedData.cycleLength;
+                calculateCycle();
+            }
+        }
+
+        function calculateCycle() {
+            const lastDateVal = document.getElementById('last-period-input').value;
+            const cycleLen = parseInt(document.getElementById('cycle-length').value);
+            if (!lastDateVal) return;
+
+            const lastDate = new Date(lastDateVal);
+            localStorage.setItem('cycleData', JSON.stringify({ lastDate: lastDateVal, cycleLength: cycleLen }));
+
+            // Next Period
+            const nextPeriod = new Date(lastDate);
+            nextPeriod.setDate(lastDate.getDate() + cycleLen);
+            document.getElementById('next-period').innerText = formatter.format(nextPeriod);
+
+            // Ovulation (standard rhythm method)
+            const ovulation = new Date(nextPeriod);
+            ovulation.setDate(nextPeriod.getDate() - 14);
+            document.getElementById('ovulation-day').innerText = formatter.format(ovulation);
+
+            renderCalendar(lastDate, nextPeriod, ovulation);
+        }
+
+        function renderCalendar(last, next, ovul) {
+            const container = document.getElementById('calendar-days');
+            const monthHeader = document.getElementById('month-name');
+            container.innerHTML = '';
+
+            const now = new Date();
+            monthHeader.innerText = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { month: 'long' }).format(now);
+
+            // Simple logic for current Jalali month grid (simplified for mobile view)
+            for (let i = 1; i <= 31; i++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = "h-10 flex flex-col items-center justify-center rounded-lg text-sm";
+                dayDiv.innerText = i.toLocaleString('fa-IR');
+                
+                // Add dots for period/ovulation logic (placeholder logic)
+                if (i % 7 === 0) dayDiv.classList.add('bg-pink-100', 'text-pink-600');
+                container.appendChild(dayDiv);
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
